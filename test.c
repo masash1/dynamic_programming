@@ -286,10 +286,10 @@ void conditionPhi(int i, int j, int k, double *tempCost, double *Jprev){
 void computeTotalCost(double *tempCost, double *totalCost){
 	double tempCostTotal=0;
 	
-	for(int n; n<numActions; n++){
+	for(int n=0; n<numActions; n++){
 		tempCostTotal+=tempCost[n];
 	}
-	for(int n; n<numActions; n++){
+	for(int n=0; n<numActions; n++){
 		totalCost[n]=vMove+gamma1*((1-perr)*tempCost[n]+(perr/6)*(tempCostTotal-tempCost[n]));
 	}
 }
