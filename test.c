@@ -1,10 +1,9 @@
-/*********************************************************
-*********************************************************/
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <sys/time.h>
 
 // FUNCTIONS FOR SETUP
 int numberCells(double, double *);
@@ -25,6 +24,9 @@ void computeTotalCost(double *, double *);
 double computeNewValue(double *);
 char computeNewPolicy(double *);
 
+// FUNCTIONS FOR ANALYSIS
+double cpuSecond(void);
+
 // DEFINE GLOBAL PARAMETERS
 int nr, ntheta, nphi;
 double perr;
@@ -34,6 +36,8 @@ double vInitial;
 int numActions = 7;
 
 int main(int argc, char **argv){
+	double iStart=cpuSecond();
+
 	// DEFINE PARAMETERS
 	double dr, dtheta, dphi;
 	double rdim[2], thetadim[2], phidim[2];
@@ -114,6 +118,8 @@ int main(int argc, char **argv){
 	free(Jprev);
 	free(Uprev);
 	
+	double iElaps=cpuSecond()-iStart;
+	printf("Time elapsed on GPU = %f ms\n", iElaps*1000.0f);	
 	return(0);
 }
 
@@ -320,4 +326,11 @@ char computeNewPolicy(double *totalCost){
 	}
 
 	return idx;
+}
+
+/*------------ FUNCTIONS FOR ANALYSIS --------------*/
+double cpuSecond(void){
+	struct timeval tp;
+	gettimeofday(&tp, NULL);
+	return ((double)tp.tv_sec+(double)tp.tv_usec*1.e-6);
 }
