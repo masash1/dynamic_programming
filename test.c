@@ -46,7 +46,7 @@ int main(int argc, char **argv){
 	double rdim[2], thetadim[2], phidim[2];
 	double *rVec, *thetaVec, *phiVec;
 	// - minimum grid resolution for r, theta, phi
-	dr = 5.0, dtheta = 180.0, dphi = 180;
+	dr = 1.0, dtheta = 1.0, dphi = 1.0;
 	// - dimensions of the state space
 	rdim[0] = 0.0, rdim[1] = 10.0;
 	thetadim[0] = 0.0, thetadim[1] = 360.0;
@@ -55,6 +55,8 @@ int main(int argc, char **argv){
 	nr = numberCells(dr, rdim);
 	ntheta = numberCells(dtheta, thetadim);
 	nphi = numberCells(dphi, phidim);
+	printf("nr=%d ntheta=%d nphi=%d\n",nr,ntheta,nphi);
+	printf("Number of states is %d\n",nr*ntheta*nphi);
 	// - vectors for r, theta, phi
 	rVec = (double *)malloc(sizeof(double)*nr);
 	thetaVec = (double *)malloc(sizeof(double)*ntheta);
@@ -95,18 +97,19 @@ int main(int argc, char **argv){
 	Uprev = (char *)calloc(nr*ntheta*nphi, sizeof(char));
 
 	for(int t=0; t<T; t++){
-		printf("Iteration %d\n", t+1);
+//		printf("Iteration %d\n", t+1);
 
 		// Iterate over all states.
 		memcpy(Jprev, J, sizeof(double)*nr*ntheta*nphi);
 		memcpy(Uprev, U, sizeof(char)*nr*ntheta*nphi);
 
 		valueIteration(J, U, Jprev);
-
+/*
 		for(int x=0; x<nr*ntheta*nphi; x++){
 			printf("%2d J=%3.1f U=%2d\n", x, J[x], U[x]);
 		}
 		printf("\n");
+*/
 	}
 
 	// free used memory
