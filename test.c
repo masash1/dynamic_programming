@@ -8,15 +8,15 @@
 // FUNCTIONS FOR SETUP
 int numberCells(double, double *);
 void setVector(int, double, double *, double *);
-void setObst(double *);
-void setGoal(double *, double *, double *);
-void setInitialValue(double *, double *, double *);
-void conditionValue(double *, double *, double *, int, int, int);
-void setInitialPolicy(double *, double *, char *);
-void conditionPolicy(double *, double *, char *, int, int, int);
+void setObst();
+void setGoal(double *, double *);
+void setInitialValue(double *);
+void conditionValue(double *, int, int, int);
+void setInitialPolicy(char *);
+void conditionPolicy(char *, int, int, int);
 
 // FUNCTIONS FOR VALUE ITERATION
-void valueIteration(double *, double *, double *, char *, double *);
+void valueIteration(double *, char *, double *);
 void conditionR(int, int, int, double *, double *);
 void conditionTheta(int, int, int, double *, double *);
 void conditionPhi(int, int, int, double *, double *);
@@ -34,6 +34,9 @@ double gamma1;
 double vGoal, vObst, vMove;
 double vInitial;
 int numActions = 7;
+
+// DEFINE OBSTACLE AND GOAL GLOBALLY
+double *isobst, *isgoal;
 
 int main(int argc, char **argv){
 	double iStart=cpuSecond();
@@ -70,20 +73,19 @@ int main(int argc, char **argv){
 	// initial guess at all values
 	vInitial = 0.0;
 
-	// DEFINE OBSTACLE AND GOAL LOCATIONS
-	double *isobst, *isgoal;
+	// DEFINE OBSTACLE AND GOAL
 	isobst = (double *)calloc(nr*ntheta*nphi, sizeof(double));
 	isgoal = (double *)calloc(nr*ntheta*nphi, sizeof(double));
-	setObst(isobst);
-	setGoal(thetaVec, phiVec, isgoal);
+	setObst();
+	setGoal(thetaVec, phiVec);
 
 	// DEFINE INITIAL GUESS AT VALUE AND POLICY
 	double *J;
 	char *U;
 	J = (double *)calloc(nr*ntheta*nphi, sizeof(double));
 	U = (char *)calloc(nr*ntheta*nphi, sizeof(char));
-	setInitialValue(isobst, isgoal, J);
-	setInitialPolicy(isobst, isgoal, U);
+	setInitialValue(J);
+	setInitialPolicy(U);
 
 	// DO VALUE ITERATION
 	int T = 100;
@@ -99,7 +101,7 @@ int main(int argc, char **argv){
 		memcpy(Jprev, J, sizeof(double)*nr*ntheta*nphi);
 		memcpy(Uprev, U, sizeof(char)*nr*ntheta*nphi);
 
-		valueIteration(isobst, isgoal, J, U, Jprev);
+		valueIteration(J, U, Jprev);
 
 		for(int x=0; x<nr*ntheta*nphi; x++){
 			printf("%2d J=%3.1f U=%2d\n", x, J[x], U[x]);
@@ -119,7 +121,7 @@ int main(int argc, char **argv){
 	free(Uprev);
 	
 	double iElaps=cpuSecond()-iStart;
-	printf("Time elapsed on GPU = %f ms\n", iElaps*1000.0f);	
+	printf("Time elapsed = %f ms\n", iElaps*1000.0f);	
 	return(0);
 }
 
@@ -150,7 +152,7 @@ void setVector(int n, double d, double *dim, double *Vec){
 	}
 }
 
-void setObst(double *isobst){
+void setObst(){
 	for(int j=0; j<ntheta; j++){
 		for(int k=0;k<nphi; k++){
 			isobst[nr*ntheta*k+(nr-1)*ntheta+j] = 1;
@@ -158,7 +160,7 @@ void setObst(double *isobst){
 	}
 }
 
-void setGoal(double *thetaVec, double *phiVec, double *isgoal){
+void setGoal(double *thetaVec, double *phiVec){
 	for(int j=0; j<ntheta; j++){
 		for(int k=0; k<nphi; k++){
 			if(thetaVec[j]==phiVec[k])
@@ -167,17 +169,17 @@ void setGoal(double *thetaVec, double *phiVec, double *isgoal){
 	}
 }
 
-void setInitialValue(double *isobst, double *isgoal, double *J){
+void setInitialValue(double *J){
 	for(int i=0; i<nr; i++){
 		for(int j=0; j<ntheta; j++){
 			for(int k=0; k<nphi; k++){
-				conditionValue(isobst, isgoal, J, i, j, k);
+				conditionValue(J, i, j, k);
 			}
 		}
 	}
 }
 
-void conditionValue(double *isobst, double *isgoal, double *J, int i, int j, int k){
+void conditionValue(double *J, int i, int j, int k){
 	if(isobst[nr*ntheta*k+ntheta*i+j]){
 		J[nr*ntheta*k+ntheta*i+j] = vObst;
 	}
@@ -189,19 +191,19 @@ void conditionValue(double *isobst, double *isgoal, double *J, int i, int j, int
 	}
 }
 
-void setInitialPolicy(double *isobst, double *isgoal, char *U){
+void setInitialPolicy(char *U){
 	srand((unsigned)time(NULL));
 
 	for(int i=0; i<nr; i++){
 		for(int j=0; j<ntheta; j++){
 			for(int k=0; k<nphi; k++){
-				conditionPolicy(isobst, isgoal, U, i, j, k);
+				conditionPolicy(U, i, j, k);
 			}
 		}
 	}
 }
 
-void conditionPolicy(double *isobst, double *isgoal, char *U, int i, int j, int k){
+void conditionPolicy(char *U, int i, int j, int k){
 	if(isobst[nr*ntheta*k+ntheta*i+j]){
 		U[nr*ntheta*k+ntheta*i+j] = -1;
 	}
@@ -216,7 +218,7 @@ void conditionPolicy(double *isobst, double *isgoal, char *U, int i, int j, int 
 
 /*--------------- VALUE ITERATION FUNCTIONS ----------------*/
 
-void valueIteration(double *isobst, double *isgoal, double *J, char *U, double *Jprev){
+void valueIteration(double *J, char *U, double *Jprev){
 	double *tempCost, *totalCost;
 	tempCost = (double *)calloc(numActions, sizeof(double));
 	totalCost = (double *)calloc(numActions, sizeof(double));
